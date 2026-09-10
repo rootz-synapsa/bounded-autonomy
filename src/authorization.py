@@ -1,11 +1,12 @@
 """
-M7 Authorization Lifecycle: bounded approval for SUPERVISED actions.
+M7/M8 Authorization Lifecycle: bounded approval for SUPERVISED actions.
 
 Statuses:
+- NOT_REQUIRED: decision was AUTO (no approval needed)
 - PENDING: awaiting human approval
-- GRANTED: approved; single-use, time-bounded, state-bound
+- GRANTED: approved; single-use, time-bounded, state-bound, context-bound
 - EXPIRED: TTL elapsed before use
-- INVALIDATED: denied by approver, action mismatch, or state drift since grant
+- INVALIDATED: denied by approver, or reality drifted (revalidation failed)
 - CONSUMED: used exactly once
 
 Fail-closed: only GRANTED authorizations may be consumed.
@@ -19,6 +20,7 @@ from enum import Enum
 
 
 class AuthorizationStatus(Enum):
+    NOT_REQUIRED = "NOT_REQUIRED"
     PENDING = "PENDING"
     GRANTED = "GRANTED"
     EXPIRED = "EXPIRED"
@@ -44,6 +46,7 @@ class Authorization:
     granted_by: str | None = None
     granted_at: float | None = None
     state_hash_at_grant: str | None = None
+    context_predicate: dict | None = None
     consumed_at: float | None = None
     invalidation_reason: str | None = None
     history: list = field(default_factory=list)
@@ -77,7 +80,8 @@ class AuthorizationManager:
                 auth.status = AuthorizationStatus.EXPIRED
                 auth.history.append(("EXPIRED", self._clock(), "ttl elapsed"))
 
-    def grant(self, authorization_id: str, approver_id: str, state: dict) -> Authorization:
+    def grant(self, authorization_id: str, approver_id: str, state: dict,
+              context_predicate: dict | None = None) -> Authorization:
         auth = self._store[authorization_id]
         self._refresh_expiry(auth)
         if auth.status is not AuthorizationStatus.PENDING:
@@ -86,6 +90,7 @@ class AuthorizationManager:
         auth.granted_by = approver_id
         auth.granted_at = self._clock()
         auth.state_hash_at_grant = state_hash(state)
+        auth.context_predicate = context_predicate
         auth.history.append(("GRANTED", auth.granted_at, f"by {approver_id}"))
         return auth
 
@@ -99,22 +104,32 @@ class AuthorizationManager:
         auth.history.append(("INVALIDATED", self._clock(), auth.invalidation_reason))
         return auth
 
-    def consume(self, authorization_id: str, action: dict, state: dict) -> Authorization:
+    def invalidate(self, authorization_id: str, reason: str) -> Authorization:
+        auth = self._store[authorization_id]
+        if auth.status is AuthorizationStatus.GRANTED:
+            auth.status = AuthorizationStatus.INVALIDATED
+            auth.invalidation_reason = reason
+            auth.history.append(("INVALIDATED", self._clock(), reason))
+        return auth
+
+    def consume(self, authorization_id: str, action: dict, state: dict,
+                validate: bool = True) -> Authorization:
         """One-shot consumption. Fail-closed on any lifecycle mismatch."""
         auth = self._store[authorization_id]
         self._refresh_expiry(auth)
         if auth.status is not AuthorizationStatus.GRANTED:
             raise PermissionError(f"authorization not consumable: status={auth.status.value}")
-        if action_key(action) != action_key(auth.action):
-            auth.status = AuthorizationStatus.INVALIDATED
-            auth.invalidation_reason = "action mismatch at consumption"
-            auth.history.append(("INVALIDATED", self._clock(), auth.invalidation_reason))
-            raise PermissionError(auth.invalidation_reason)
-        if state_hash(state) != auth.state_hash_at_grant:
-            auth.status = AuthorizationStatus.INVALIDATED
-            auth.invalidation_reason = "state changed since grant (revalidation required)"
-            auth.history.append(("INVALIDATED", self._clock(), auth.invalidation_reason))
-            raise PermissionError(auth.invalidation_reason)
+        if validate:
+            if action_key(action) != action_key(auth.action):
+                auth.status = AuthorizationStatus.INVALIDATED
+                auth.invalidation_reason = "action mismatch at consumption"
+                auth.history.append(("INVALIDATED", self._clock(), auth.invalidation_reason))
+                raise PermissionError(auth.invalidation_reason)
+            if state_hash(state) != auth.state_hash_at_grant:
+                auth.status = AuthorizationStatus.INVALIDATED
+                auth.invalidation_reason = "state changed since grant (revalidation required)"
+                auth.history.append(("INVALIDATED", self._clock(), auth.invalidation_reason))
+                raise PermissionError(auth.invalidation_reason)
         auth.status = AuthorizationStatus.CONSUMED
         auth.consumed_at = self._clock()
         auth.history.append(("CONSUMED", auth.consumed_at, "one-shot execution"))

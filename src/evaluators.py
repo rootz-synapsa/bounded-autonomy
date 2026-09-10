@@ -77,4 +77,10 @@ class InvariantEvaluator:
                 passed=False,
                 reason=f"Invariant violation: '{action_type}' is forbidden"
             )
+        # M8: state-based invariant (maintenance freeze blocks scaling)
+        if action_type == "SCALE_REPLICAS" and state.get("maintenance_freeze"):
+            return EvaluationResult(
+                passed=False,
+                reason="Invariant violation: maintenance freeze active"
+            )
         return EvaluationResult(passed=True, reason="No invariant violations")
