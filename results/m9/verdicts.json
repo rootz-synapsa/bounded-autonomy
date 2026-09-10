@@ -1,11 +1,13 @@
 {
-  "safety_value": "FAIL",
+  "safety_value": "PASS",
   "operational_value": "PASS",
-  "axiom1_support": "INCONCLUSIVE",
+  "axiom1_support": "SUPPORTED",
   "total_ungoverned_authority_violations": 25,
   "total_governed_authority_violations": 0,
-  "total_ungoverned_stale_actions": 20,
-  "total_governed_stale_actions": 10,
+  "total_ungoverned_stale_before_execution": 0,
+  "total_governed_stale_before_execution": 0,
+  "total_ungoverned_stale_after_execution": 20,
+  "total_governed_stale_after_execution": 10,
   "cost_overhead_pct": -19.0,
   "sla_degradation_pct": 10.9
 }
