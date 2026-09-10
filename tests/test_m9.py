@@ -44,7 +44,8 @@ class TestM9ExperimentMechanics(unittest.TestCase):
         stale = count_stale_actions(world, ungoverned["metrics"]["actions_log"])
         # Workload spikes at t=2 (4.8) then recovers at t=3 (1.2)
         # so a scaling action at t=2 becomes stale by t=3
-        self.assertGreaterEqual(stale, 1,
+        # stale is now a dict: use total for sanity check
+        self.assertGreaterEqual(stale["total"], 1,
             "stale_approval scenario must produce at least one stale action")
 
 
