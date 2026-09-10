@@ -67,7 +67,7 @@ class TestH1GovernedFlow(unittest.TestCase):
         verdict, reason = self.engine.evaluate(action, self.policy, self.agent_context, initial_state)
         
         self.assertEqual(verdict, Verdict.AUTO)
-        self.assertIn("Within autonomous envelope", reason)
+        self.assertIn("All evaluations passed", reason)
 
 if __name__ == "__main__":
     unittest.main()
