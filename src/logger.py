@@ -1,16 +1,20 @@
 import json
 from pathlib import Path
+from datetime import datetime
 
-def log_event(run_id: str, initial: dict, action: dict, execution: str, final: dict):
+def log_event(run_id: str, initial: dict, action: dict, execution: str, final: dict, verdict: str):
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
     event = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
         "run_id": run_id,
         "initial_state": initial,
         "action": action,
-        "execution": execution,
+        "verdict": verdict,
+        "execution_status": execution,
         "final_state": final
     }
-    with open(data_dir / "events.jsonl", "a") as f:
+    log_path = data_dir / "events.jsonl"
+    with open(log_path, "a") as f:
         f.write(json.dumps(event) + "\n")
-    return data_dir / "events.jsonl"
+    return log_path
