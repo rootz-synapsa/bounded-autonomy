@@ -45,7 +45,7 @@ class TestM5Enforcement(unittest.TestCase):
         print("="*50)
         print(f"Agent Intent: {logged_event['action']['type']} to {logged_event['action']['to']} replicas")
         print(f"Gate Verdict: {logged_event['verdict']}")
-        print(f"Execution   : {logged_event['execution_status']}")
+        print(f"Execution   : {logged_event['execution']}")  # <-- แก้ไขให้อ่านคีย์ "execution"
         print(f"State Change: {initial_state['replicas']} -> {logged_event['final_state']['replicas']} replicas (UNCHANGED)")
         print(f"Evidence    : Saved to {logged_event['run_id']} log")
         print("="*50 + "\n")
