@@ -1,78 +1,74 @@
 # Bounded Autonomy
 
-Governed AI is faster than ungoverned AI. Supported in controlled experiment.
+**Bounded governance can reduce total operational friction compared with ungoverned autonomy. Supported in a controlled experiment.**
 
-## Axiom-1: Supported
+## Axiom-1: SUPPORTED — CONTROLLED EXPERIMENT ONLY
 
 SAFETY VALUE:       PASS
 OPERATIONAL VALUE:  PASS
-AXIOM-1 SUPPORT:    SUPPORTED (in controlled inference-scaling experiment)
+AXIOM-1 SUPPORT:    SUPPORTED
+(in controlled inference-scaling experiment)
 
 Evidence: 30 paired A/B trials / 60 arm executions (3 scenarios x 10 seeds x 2 arms)
-- Authority violations: 25 to 0
-- Stale BEFORE execution: 0 to 0
-- Stale AFTER execution: 20 to 10 (50% reduction)
+- Authority violations: 25 -> 0
+- Stale BEFORE execution: 0 -> 0 (governance-failure metric)
+- Stale AFTER execution: 20 -> 10 (workload-evolution metric, see taxonomy)
 - Cost overhead: -19% (cheaper)
-- SLA degradation: +10.9% (acceptable)
+- SLA degradation: +10.9% (acceptable trade-off)
 
-Scope: Supported in our controlled inference-scaling experiment (simulator, 3 scenarios, specific policy configuration).
+Scope: simulator, 3 workload scenarios, specific policy configuration.
+This is an existence proof under tested conditions, not a universal law.
 
-See docs/RESULTS.md for full analysis.
-See docs/MEASUREMENT_CORRECTION.md for honest disclosure of metric taxonomy correction.
+See docs/RESULTS.md and docs/MEASUREMENT_CORRECTION.md.
 
-## Narrative
+## What "operational friction" means here
 
-Autonomous infrastructure can optimize aggressively without receiving unlimited authority.
+Axiom-1 support is composite evidence, not a single metric:
+1. Authority correctness: 25 -> 0 violations
+2. Stale-before-execution prevention: 0 in governed arm
+3. Cost: -19% vs ungoverned baseline
+4. SLA trade-off: +10.9%, within predefined acceptance bound
 
-In 30 paired controlled trials, bounded governance eliminated observed authority violations while reducing simulated infrastructure cost by 19%, with a 10.9% SLA trade-off. Context-bound revalidation also prevented approved actions from executing after their justification became stale.
+We do NOT claim governed execution is faster in latency terms.
+SLA degradation is positive; the gain is in cost and authority correctness.
 
-## Architecture
+## Stale action taxonomy (why 20 -> 10 is not a contradiction)
 
-H0 to M8 evolution:
-- H0: Ungoverned baseline (control group)
-- M5: Basic enforcement (BLOCK/ALLOW, fail-closed)
-- M6: Bounded authority envelope (AUTO/SUPERVISED/BLOCK)
-- M7: Authorization lifecycle (PENDING to GRANTED to CONSUMED/EXPIRED/INVALIDATED)
-- M8: Revalidation execution gate (authority valid only while reality remains valid)
+- Stale BEFORE execution: justification already false at execution time.
+  This is a governance failure. Governed arm: 0.
+- Stale AFTER execution: action was justified at execution time, but the
+  workload recovered 1-2 steps later. This is overprovisioning, not a safety
+  failure. M8 revalidation cannot prevent it because it was valid at decision
+  time. Governed arm halves it (20 -> 10) via earlier bounded scaling.
 
-## Experiment
+M8 killer property: authorization is not permanent permission.
+PENDING -> GRANTED -> context changes -> INVALIDATED -> CANCELLED.
+"The action was approved. It was no longer justified. So it never executed."
 
-Methodology: Controlled experiment comparing H0 (ungoverned) vs H1 (governed)
-- Same workload, optimizer, seeds, initial state, cost model
-- Only difference: governance path
-- 30 paired trials / 60 arm executions
+## Architecture (H0 -> M8)
 
-Scenarios: Spike, Overshoot, Stale Approval
+- H0: ungoverned baseline (control)
+- M5: fail-closed enforcement (AUTO/BLOCK)
+- M6: bounded authority envelope (AUTO/SUPERVISED/BLOCK)
+- M7: authorization lifecycle (PENDING/GRANTED/EXPIRED/INVALIDATED/CONSUMED)
+- M8: revalidation gate (authority valid only while context remains valid)
 
-See docs/EXPERIMENT.md for methodology.
+## Reproduce
 
-## Killer Scenarios
+python experiments/run_m9.py                  # 30 paired trials
+python experiments/demo_run.py --scene all    # 3-scene demo
+python -m unittest discover -s tests -v       # 28 tests
 
-### M5: 4 to 8 SUPERVISED (not BLOCK)
-H0 executes immediately (violates authority). H1 routes through SUPERVISED (within supervised envelope, awaits approval).
+## Docs
 
-Demonstrates: Governance does not forbid autonomy. It defines bounds.
+- docs/EXPERIMENT.md - methodology + predefined acceptance criteria
+- docs/RESULTS.md - verdicts and analysis
+- docs/MEASUREMENT_CORRECTION.md - metric taxonomy correction history
+- docs/DEMO_SCRIPT.md / docs/SPEAKER_NOTES.md - 90-second pitch
+- docs/VISUAL_DIAGRAM.md - architecture flow (Mermaid)
 
-### M8: Stale Approval Prevention
-T0  p95=487ms   candidate: scale 6 to 7   decision=SUPERVISED
-T1  human approves                     authorization=GRANTED
-T2  workload changes                   p95=165ms
-T3  revalidation fails                 INVALIDATED, CANCELLED
+## Status
 
-Hero evidence: The action was approved. It was no longer justified. So it never executed.
-
-## Running the Experiment
-
-python experiments/run_m9.py
-
-Output: results/m9/verdicts.json
-
-## Test Suite
-
-28 tests covering H0 baseline, H1 taxonomy, M5-M8 enforcement, M9 experiment mechanics.
-
-python -m unittest discover -s tests -v
-
-## License
-
-MIT
+Demo Freeze v1 active.
+Next: M10 adversarial replication / boundary test —
+find the measurable conditions where Axiom-1 stops holding.
