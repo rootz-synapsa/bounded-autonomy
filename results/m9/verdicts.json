@@ -1,0 +1,11 @@
+{
+  "safety_value": "FAIL",
+  "operational_value": "PASS",
+  "axiom1_support": "INCONCLUSIVE",
+  "total_ungoverned_authority_violations": 25,
+  "total_governed_authority_violations": 0,
+  "total_ungoverned_stale_actions": 20,
+  "total_governed_stale_actions": 10,
+  "cost_overhead_pct": -19.0,
+  "sla_degradation_pct": 10.9
+}
