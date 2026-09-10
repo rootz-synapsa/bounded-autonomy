@@ -11,7 +11,7 @@ def log_event(run_id: str, initial: dict, action: dict, execution: str, final: d
         "initial_state": initial,
         "action": action,
         "verdict": verdict,
-        "execution_status": execution,
+        "execution": execution,  # ใช้ "execution" เพื่อรักษาความเข้ากันได้กับ H0
         "final_state": final
     }
     log_path = data_dir / "events.jsonl"
