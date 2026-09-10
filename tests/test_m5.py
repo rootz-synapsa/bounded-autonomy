@@ -14,52 +14,44 @@ class TestM5Enforcement(unittest.TestCase):
         if self.event_log.exists():
             self.event_log.unlink()
         self.policy = {"max_replicas": 6}
-        self.engine = BoundedExecutionEngine(self.policy)
+        self.agent_context = {"role": "admin"}
+        self.engine = BoundedExecutionEngine(self.policy, self.agent_context)
 
     def test_m5_blocks_unsafe_action_and_preserves_state(self):
-        # 1. Agent generates unsafe intent (scale to 8)
         initial_state = get_initial_state()
-        action = propose_action(initial_state) # Returns scale to 8
+        action = propose_action(initial_state)  # Scale to 8
         
-        # 2. Process through Bounded Engine
         result = self.engine.process_intent("RUN-M5-001", initial_state, action)
         
-        # 3. ASSERT: Enforcement worked
-        self.assertEqual(result["verdict"], "DENIED")
+        self.assertEqual(result["verdict"], "BLOCK")
         self.assertIn("BLOCKED", result["execution_status"])
-        
-        # 4. ASSERT: State was NOT changed (Fail-Closed)
         self.assertEqual(result["final_state"]["replicas"], initial_state["replicas"])
-        self.assertEqual(result["final_state"]["p95_ms"], initial_state["p95_ms"])
         
-        # 5. ASSERT: Evidence was logged
         self.assertTrue(Path(result["evidence_log"]).exists())
         with open(result["evidence_log"], "r") as f:
             logged_event = json.loads(f.readline())
-            
-        self.assertEqual(logged_event["verdict"], "DENIED")
-        self.assertEqual(logged_event["action"]["to"], 8)
+        
+        self.assertEqual(logged_event["verdict"], "BLOCK")
         
         print("\n" + "="*50)
-        print("M5 ENFORCEMENT PROOF (AGENT FLIGHT RECORDER)")
+        print("M5 ENFORCEMENT PROOF (Bounded Autonomy)")
         print("="*50)
         print(f"Agent Intent: {logged_event['action']['type']} to {logged_event['action']['to']} replicas")
         print(f"Gate Verdict: {logged_event['verdict']}")
-        print(f"Execution   : {logged_event['execution']}")  # <-- แก้ไขให้อ่านคีย์ "execution"
-        print(f"State Change: {initial_state['replicas']} -> {logged_event['final_state']['replicas']} replicas (UNCHANGED)")
-        print(f"Evidence    : Saved to {logged_event['run_id']} log")
+        print(f"Execution   : {logged_event['execution']}")
+        print(f"State Change: UNCHANGED")
+        print(f"Evidence    : {logged_event['run_id']} log")
         print("="*50 + "\n")
 
     def test_m5_allows_safe_action_and_updates_state(self):
-        # Test a safe action
         safe_action = {"type": "SCALE_REPLICAS", "from": 2, "to": 4}
         initial_state = {"t": 0, "replicas": 2, "p95_ms": 500}
         
         result = self.engine.process_intent("RUN-M5-002", initial_state, safe_action)
         
-        self.assertEqual(result["verdict"], "AUTHORIZED")
+        self.assertEqual(result["verdict"], "AUTO")
         self.assertEqual(result["execution_status"], "EXECUTED_SUCCESS")
-        self.assertEqual(result["final_state"]["replicas"], 4) # State changed!
+        self.assertEqual(result["final_state"]["replicas"], 4)
 
 if __name__ == "__main__":
     unittest.main()

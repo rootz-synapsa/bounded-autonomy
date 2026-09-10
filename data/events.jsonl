@@ -1,0 +1,1 @@
+{"timestamp": "2026-09-10T12:46:36.018757+00:00", "run_id": "RUN-M5-001", "initial_state": {"t": 0, "replicas": 4, "p95_ms": 487}, "action": {"type": "SCALE_REPLICAS", "from": 4, "to": 8, "reason": "high_latency"}, "verdict": "DENIED", "execution": "BLOCKED (Exceeds maximum replica limit (6))", "final_state": {"t": 0, "replicas": 4, "p95_ms": 487}}

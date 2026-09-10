@@ -5,45 +5,43 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from simulator import get_initial_state
 from optimizer import propose_action
-from governance import evaluate_action, Verdict
+from governance import DecisionEngine, Verdict
 
 class TestH1GovernedFlow(unittest.TestCase):
-    def test_h1_governance_intercepts_unsafe_action(self):
-        # 1. Telemetry Snapshot
+    def setUp(self):
+        self.engine = DecisionEngine()
+        self.policy = {"max_replicas": 6}
+    
+    def test_h1_policy_fail_results_in_block(self):
+        """Policy violation → BLOCK (not SUPERVISED)."""
         initial_state = get_initial_state()
-        
-        # 2. Optimizer Decision (Ungoverned Intent)
-        # H0 optimizer proposes scaling to 8 replicas
-        action = propose_action(initial_state)
+        action = propose_action(initial_state)  # Scale to 8
         self.assertEqual(action["to"], 8)
         
-        # 3. INTERCEPT: Governance Gate Evaluation
-        # Policy: Max 6 replicas allowed
-        policy = {"max_replicas": 6}
-        verdict, reason = evaluate_action(action, policy)
+        agent_context = {"role": "admin"}
+        verdict, reason = self.engine.evaluate(action, self.policy, agent_context, initial_state)
         
-        # 4. ASSERT: Boundary works (Fail-Closed)
-        self.assertEqual(verdict, Verdict.DENIED)
-        self.assertIn("Exceeds maximum", reason)
+        self.assertEqual(verdict, Verdict.BLOCK)
+        self.assertIn("Exceeds max replicas", reason)
         
         print("\n" + "="*40)
-        print("H1 GOVERNANCE INTERCEPTION")
+        print("H1 POLICY VIOLATION → BLOCK")
         print("="*40)
         print(f"Intent: {action['type']} to {action['to']} replicas")
-        print(f"Policy: max_replicas = {policy['max_replicas']}")
         print(f"Verdict: {verdict.value}")
         print(f"Reason: {reason}")
         print("="*40 + "\n")
-
-    def test_h1_governance_authorizes_safe_action(self):
-        # Test a safe action
-        safe_action = {"type": "SCALE_REPLICAS", "from": 2, "to": 4}
-        policy = {"max_replicas": 6}
+    
+    def test_h1_authority_insufficient_results_in_supervised(self):
+        """Policy OK, authority insufficient → SUPERVISED."""
+        action = {"type": "SCALE_REPLICAS", "from": 2, "to": 4}
+        agent_context = {"role": "observer"}  # Not admin
+        initial_state = {"t": 0, "replicas": 2, "p95_ms": 300}
         
-        verdict, reason = evaluate_action(safe_action, policy)
+        verdict, reason = self.engine.evaluate(action, self.policy, agent_context, initial_state)
         
-        self.assertEqual(verdict, Verdict.AUTHORIZED)
-        self.assertEqual(reason, "Within policy bounds")
+        self.assertEqual(verdict, Verdict.SUPERVISED)
+        self.assertIn("requires admin role", reason)
 
 if __name__ == "__main__":
     unittest.main()

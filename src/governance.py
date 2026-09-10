@@ -1,24 +1,45 @@
+"""
+DecisionEngine: synthesizes 3 evaluator results into a verdict.
+Verdict taxonomy: AUTO / SUPERVISED / BLOCK / UNGOVERNED
+"""
 from enum import Enum
+from evaluators import PolicyEvaluator, AuthorityEvaluator, InvariantEvaluator
+
 
 class Verdict(Enum):
-    AUTHORIZED = "AUTHORIZED"
-    DENIED = "DENIED"
-    HALTED = "HALTED"  # Fail-Closed default
+    AUTO = "AUTO"              # All checks pass → execute automatically
+    SUPERVISED = "SUPERVISED"  # Policy pass, authority insufficient → await bounded approval
+    BLOCK = "BLOCK"            # Invariant violation or policy fail → fail-closed
+    UNGOVERNED = "UNGOVERNED"  # H0 baseline: no governance applied
 
-def evaluate_action(action: dict, policy: dict) -> tuple[Verdict, str]:
+
+class DecisionEngine:
     """
-    The Decision Boundary.
-    Separates what the agent WANTS to do from what it CAN do.
+    Synthesizes 3 evaluators into a single verdict.
+    Priority: Invariant > Authority > Policy
     """
-    try:
-        # Example Axiom: Do not allow scaling beyond 6 replicas in this environment
-        if action.get("type") == "SCALE_REPLICAS":
-            if action.get("to", 0) > policy.get("max_replicas", 6):
-                return Verdict.DENIED, f"Exceeds maximum replica limit ({policy.get('max_replicas')})"
+    def __init__(self):
+        self.policy_eval = PolicyEvaluator()
+        self.authority_eval = AuthorityEvaluator()
+        self.invariant_eval = InvariantEvaluator()
+    
+    def evaluate(self, action: dict, policy: dict, agent_context: dict, state: dict) -> tuple[Verdict, str]:
+        # Invariant first — violations always BLOCK
+        invariant_result = self.invariant_eval.evaluate(action, state)
+        if not invariant_result.passed:
+            return Verdict.BLOCK, invariant_result.reason
         
-        # Default: If no rules broken, authorize
-        return Verdict.AUTHORIZED, "Within policy bounds"
+        # Authority second — insufficient authority → SUPERVISED
+        authority_result = self.authority_eval.evaluate(action, agent_context)
         
-    except Exception as e:
-        # INVARIANT: Conflict/Error -> halt & report (Fail-Closed)
-        return Verdict.HALTED, f"Policy evaluation error: {str(e)}"
+        # Policy third — policy fail → BLOCK
+        policy_result = self.policy_eval.evaluate(action, policy)
+        if not policy_result.passed:
+            return Verdict.BLOCK, policy_result.reason
+        
+        # If authority insufficient but policy+invariant pass → SUPERVISED
+        if not authority_result.passed:
+            return Verdict.SUPERVISED, authority_result.reason
+        
+        # All pass → AUTO
+        return Verdict.AUTO, "All evaluations passed"
