@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 from datetime import datetime, timezone
 
-def log_event(run_id: str, initial: dict, action: dict, execution: str, final: dict, verdict: str = "UNGOVERNED"):
+def log_event(run_id: str, initial: dict, action: dict, execution: str, final: dict,
+              verdict: str = "UNGOVERNED", authorization_id=None):
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
     event = {
@@ -11,8 +12,9 @@ def log_event(run_id: str, initial: dict, action: dict, execution: str, final: d
         "initial_state": initial,
         "action": action,
         "verdict": verdict,
-        "execution": execution,  # ใช้ "execution" เพื่อรักษาความเข้ากันได้กับ H0
-        "final_state": final
+        "execution": execution,
+        "final_state": final,
+        "authorization_id": authorization_id,
     }
     log_path = data_dir / "events.jsonl"
     with open(log_path, "a") as f:
