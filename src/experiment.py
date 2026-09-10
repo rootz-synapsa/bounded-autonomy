@@ -70,7 +70,7 @@ class World:
         load = self.load_at(t)
         rng_step = random.Random(self.seed * 10000 + t)
         noise = rng_step.uniform(-10, 10)
-        return max(50, int(100 * load / replicas + noise))
+        return max(50, int(500 * load / replicas + noise))
 
 
 def propose_action(state: dict):
@@ -116,6 +116,7 @@ def run_arm(scenario: Scenario, seed: int, governed: bool) -> dict:
     trajectory = []
 
     for t in range(scenario.n_steps):
+        world.t = t  # expose timestep for AuthorizationManager clock
         state = {"t": t, "replicas": world.replicas,
                  "p95_ms": world.p95_at(world.replicas, t)}
 
