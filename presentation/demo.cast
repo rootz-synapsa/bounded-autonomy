@@ -1,0 +1,5 @@
+{"version": 2, "width": 101, "height": 27, "timestamp": 1789098504, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}}
+[0.138978, "o", "SCENE 3: STALE APPROVAL\r\n--------------------------------------------------\r\nT0: p95=487ms, propose SCALE_REPLICAS 6 -> 7\r\n"]
+[0.140865, "o", "    Decision: SUPERVISED\r\n    Authorization: PENDING\r\n    Authorization: PENDING -> GRANTED by human-ops-1\r\n\r\nT1: Workload changes, p95=165ms\r\n\r\nT2: Revalidation Gate:\r\n    - action_binding: PASS\r\n"]
+[0.141208, "o", "    - objective_binding: FAIL\r\n    - state_binding: FAIL\r\n    - invariant_policy_authority: PASS\r\n    Authorization: GRANTED -> INVALIDATED\r\n    Execution: CANCELLED_AFTER_REVALIDATION\r\n\r\n"]
+[0.141506, "o", "The action was approved. It was no longer justified. So it never executed.\r\n"]
