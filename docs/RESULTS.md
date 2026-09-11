@@ -77,7 +77,7 @@ Hero evidence: The action was approved. It was no longer justified. So it never 
 
 ## Conclusion
 
-Axiom 1 "Governed AI is faster than ungoverned AI" is supported in our controlled inference-scaling experiment.
+Axiom 1 — that bounded governance can improve total operational value relative to ungoverned autonomy — received support in this controlled inference-scaling experiment.
 
 Evidence:
 1. Governed arm is safer (zero authority violations, zero pre-execution stale)

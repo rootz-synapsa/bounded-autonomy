@@ -20,7 +20,7 @@ Scale: 30 paired A/B trials / 60 arm executions
 
 Governance path: OFF (H0) vs ON (H1)
 
-Only difference between arms is whether actions pass through the M8 revalidation gate.
+The independent variable is the governed execution path: decision evaluation, bounded authority, authorization lifecycle, and pre-execution revalidation. H0 executes the same optimizer's candidate directly.
 
 ## Scenarios
 
