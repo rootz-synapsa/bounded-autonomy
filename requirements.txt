@@ -1,0 +1,6 @@
+# Bounded Autonomy — Runtime Dependencies
+#
+# This project uses Python standard library only.
+# No external packages required for execution.
+#
+# Verified on: Python 3.12+
